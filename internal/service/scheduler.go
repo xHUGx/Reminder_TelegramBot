@@ -64,3 +64,29 @@ func (s *ReminderScheduler) checkAndSend(ctx context.Context) {
 		}
 	}
 }
+
+func (s *ReminderScheduler) checkAndDelete(ctx context.Context) {
+	pendingReminders, err := s.repo.GetPending(ctx)
+	if err != nil {
+		log.Println("ошибка получения активных напоминаний:", err)
+		return
+	}
+	now := time.Now()
+
+	for _, reminder := range pendingReminders {
+		if !now.Before(reminder.Time) {
+			err := s.notifier.SendNotification(ctx, reminder.ChatID, reminder.Text)
+			if err != nil {
+				log.Println("ошибка отправки напоминания:", err)
+				continue
+			}
+			err = s.repo.MarkAsSent(ctx, reminder.ID)
+			if err != nil {
+				log.Println("ошибка отметки сообщения как выполненого:", err)
+				continue
+			}
+		} else {
+			continue
+		}
+	}
+}

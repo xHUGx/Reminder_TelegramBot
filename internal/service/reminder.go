@@ -10,6 +10,7 @@ import (
 
 type ReminderRepository interface {
 	Create(ctx context.Context, reminder domain.Reminder) (domain.Reminder, error)
+	Delete(ctx context.Context, id, chatID int64) error
 	GetByID(ctx context.Context, id int64) (domain.Reminder, error)
 	GetPending(ctx context.Context) ([]domain.Reminder, error)
 	MarkAsSent(ctx context.Context, id int64) error
@@ -49,4 +50,12 @@ func (r *ReminderService) GetPendingReminders(ctx context.Context) ([]domain.Rem
 		return nil, fmt.Errorf("there was an error getting pending reminders: %w", err)
 	}
 	return pendingReminders, nil
+}
+
+func (r *ReminderService) DeleteReminder(ctx context.Context, id, chatID int64) error {
+	err := r.repo.Delete(ctx, id, chatID)
+	if err != nil {
+		return fmt.Errorf("there was an error deleting reminder: %w", err)
+	}
+	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"Reminder_TelegramBot/internal/service"
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -62,6 +63,29 @@ func (h *ReminderHandler) HandleNewRemind(ctx context.Context, b *bot.Bot, updat
 
 }
 
+func (h *ReminderHandler) HandleDelete(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if update.Message == nil {
+		return
+	}
+
+	reminderId := strings.TrimSpace(strings.TrimPrefix(update.Message.Text, "/delete"))
+	if reminderId == "" {
+		SendBotMsg(ctx, b, update, "Укажите ID напоминания, например /delete 5")
+	}
+
+	id, err := strconv.ParseInt(reminderId, 10, 64)
+	if err != nil {
+		SendBotMsg(ctx, b, update, "ID должен быть числом")
+	}
+	err = h.service.DeleteReminder(ctx, id, update.Message.Chat.ID)
+	if errors.Is(err, domain.ErrNotFound) {
+		SendBotMsg(ctx, b, update, "Напоминание не найдено")
+	} else if err != nil {
+		SendBotMsg(ctx, b, update, "Ошибка при удалении")
+	}
+	SendBotMsg(ctx, b, update, "✅ Напоминание удалено")
+}
+
 func (h *ReminderHandler) HandleGetList(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if update.Message == nil {
 		return
@@ -77,7 +101,8 @@ func (h *ReminderHandler) HandleGetList(ctx context.Context, b *bot.Bot, update 
 		return
 	}
 	for _, reminder := range remindersList {
-		SendBotMsg(ctx, b, update, reminder.Text+" на время "+reminder.Time.Format("2006-01-02 15:04:05"))
+		SendBotMsg(ctx, b, update, "ID:"+strconv.FormatInt(reminder.ID, 10)+" "+reminder.Text+
+			" на время "+reminder.Time.Format("2006-01-02 15:04:05"))
 	}
 
 }
@@ -86,7 +111,7 @@ func (h *ReminderHandler) HandleDefault(ctx context.Context, b *bot.Bot, update 
 	if update.Message == nil {
 		return
 	}
-	SendBotMsg(ctx, b, update, "Неизвестная команда. Используй /remind или /list»")
+	SendBotMsg(ctx, b, update, "Неизвестная команда. Используй /remind»")
 }
 
 func SendBotMsg(ctx context.Context, b *bot.Bot, update *models.Update, message string) {
@@ -116,4 +141,5 @@ func (h *ReminderHandler) RegisterCommands(b *bot.Bot) {
 	//RegisterCommands commands
 	b.RegisterHandler(bot.HandlerTypeMessageText, "/remind", bot.MatchTypePrefix, h.HandleNewRemind)
 	b.RegisterHandler(bot.HandlerTypeMessageText, "/list", bot.MatchTypePrefix, h.HandleGetList)
+	b.RegisterHandler(bot.HandlerTypeMessageText, "/delete", bot.MatchTypePrefix, h.HandleDelete)
 }

@@ -31,6 +31,18 @@ func (r *InMemoryReminderRepo) Create(ctx context.Context, reminder domain.Remin
 	return reminder, nil
 }
 
+func (r *InMemoryReminderRepo) Delete(ctx context.Context, id, ChatID int64) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if rem, ok := r.reminders[id]; !ok || rem.ChatID != ChatID {
+		return domain.ErrNotFound
+	}
+	delete(r.reminders, id)
+
+	return nil
+}
+
 func (r *InMemoryReminderRepo) GetByID(ctx context.Context, id int64) (domain.Reminder, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

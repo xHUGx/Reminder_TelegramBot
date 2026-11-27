@@ -4,7 +4,7 @@ services:
     container_name: reminder_postgres
     environment:
       POSTGRES_USER: reminder_user
-      POSTGRES_PASSWORD: Romochka11
+      POSTGRES_PASSWORD: reminder_password
       POSTGRES_DB: reminder_db
     ports:
       - "5432:5432"
